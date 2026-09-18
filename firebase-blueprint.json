@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Data pekerjaan proyek divisi mechanical electrical PT Sapta Manunggal Karya",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "namaPekerjaan": { "type": "string", "maxLength": 256 },
+        "kategori": { "type": "string", "maxLength": 64 },
+        "lokasi": { "type": "string", "maxLength": 256 },
+        "nilaiKontrak": { "type": "number" },
+        "noSPBJ": { "type": "string", "maxLength": 128 },
+        "pic": { "type": "string", "maxLength": 128 },
+        "mandor": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "maxLength": 64 },
+        "statusManuver": { "type": "string", "maxLength": 64 },
+        "progressRencana": { "type": "number" },
+        "progressRealisasi": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "namaPekerjaan", "lokasi", "noSPBJ", "status"]
+    },
+    "MaterialRequest": {
+      "title": "MaterialRequest",
+      "description": "Formulir bon permintaan material MDU dan Non-MDU",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nomorPermintaan": { "type": "string", "maxLength": 128 },
+        "pekerjaan": { "type": "string", "maxLength": 256 },
+        "lokasi": { "type": "string", "maxLength": 256 },
+        "noSPBJ": { "type": "string", "maxLength": 128 },
+        "pemohon": { "type": "string", "maxLength": 128 },
+        "direksiPengawas": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "nomorPermintaan", "pekerjaan", "status"]
+    },
+    "MasterMaterial": {
+      "title": "MasterMaterial",
+      "description": "Katalog master data material MDU dan Non-MDU",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "kodeMaterial": { "type": "string", "maxLength": 128 },
+        "namaMaterial": { "type": "string", "maxLength": 256 },
+        "kategori": { "type": "string", "maxLength": 32 },
+        "kelompok": { "type": "string", "maxLength": 128 },
+        "satuan": { "type": "string", "maxLength": 32 },
+        "stokGudang": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "kodeMaterial", "namaMaterial", "kategori", "kelompok", "satuan"]
+    },
+    "MaterialShipment": {
+      "title": "MaterialShipment",
+      "description": "Surat jalan pengiriman material dan informasi ekspedisi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nomorSuratJalan": { "type": "string", "maxLength": 128 },
+        "tanggalKirim": { "type": "string", "maxLength": 64 },
+        "namaEkspedisi": { "type": "string", "maxLength": 128 },
+        "jenisArmada": { "type": "string", "maxLength": 128 },
+        "nomorPolisi": { "type": "string", "maxLength": 64 },
+        "namaDriver": { "type": "string", "maxLength": 128 },
+        "pekerjaan": { "type": "string", "maxLength": 256 },
+        "lokasiTujuan": { "type": "string", "maxLength": 256 },
+        "status": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "nomorSuratJalan", "namaEkspedisi", "namaDriver", "status"]
+    },
+    "Foreman": {
+      "title": "Foreman",
+      "description": "Daftar mandor pelaksana lapangan dengan multi-lokasi penugasan dan multi-PIC pengawas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "namaMandor": { "type": "string", "maxLength": 128 },
+        "kontak": { "type": "string", "maxLength": 64 },
+        "spesialisasi": { "type": "string", "maxLength": 256 },
+        "jumlahAnggota": { "type": "number" },
+        "status": { "type": "string", "maxLength": 32 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "namaMandor", "status"]
+    },
+    "WorkPlan": {
+      "title": "WorkPlan",
+      "description": "Rencana kerja lapangan dengan tanggal, lokasi, PIC, mandor, dan uraian pekerjaan per item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nomorRencana": { "type": "string", "maxLength": 128 },
+        "judulRencana": { "type": "string", "maxLength": 256 },
+        "tanggal": { "type": "string", "maxLength": 64 },
+        "lokasi": { "type": "string", "maxLength": 256 },
+        "pic": { "type": "string", "maxLength": 128 },
+        "mandor": { "type": "string", "maxLength": 128 },
+        "manpowerCount": { "type": "number" },
+        "status": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "nomorRencana", "tanggal", "lokasi", "pic", "mandor", "status"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Koleksi pekerjaan/proyek monitoring"
+    },
+    "/material_requests/{requestId}": {
+      "schema": "MaterialRequest",
+      "description": "Koleksi bon pengajuan material"
+    },
+    "/master_materials/{materialId}": {
+      "schema": "MasterMaterial",
+      "description": "Koleksi master katalog material"
+    },
+    "/material_shipments/{shipmentId}": {
+      "schema": "MaterialShipment",
+      "description": "Koleksi surat jalan dan pengiriman material ekspedisi"
+    },
+    "/foremen/{foremanId}": {
+      "schema": "Foreman",
+      "description": "Koleksi daftar mandor, lokasi pekerjaan dan PIC"
+    },
+    "/work_plans/{workPlanId}": {
+      "schema": "WorkPlan",
+      "description": "Koleksi rencana kerja harian/mingguan dan rincian item uraian pekerjaan"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Connection validation probe
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Projects collection for Divisi ME PT Sapta Manunggal Karya
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Material requests collection (MDU & Non-MDU)
+    match /material_requests/{requestId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Master material catalog collection
+    match /master_materials/{materialId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Material shipments (Surat Jalan & Ekspedisi)
+    match /material_shipments/{shipmentId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Foremen collection (Daftar Mandor, Lokasi & PIC)
+    match /foremen/{foremanId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Work Plans collection (Rencana Kerja & Uraian Pekerjaan)
+    match /work_plans/{workPlanId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Global default deny for unmapped paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

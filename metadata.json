@@ -1,0 +1,6 @@
+{
+  "name": "Divisi Mechanical Electrical PT Sapta Manunggal Karya",
+  "description": "Sistem Informasi Divisi Mechanical Electrical PT Sapta Manunggal Karya untuk pemantauan progres fisik, nilai kontrak SPBJ, PIC, mandor, manpower lapangan, dan rincian kebutuhan material MDU & Non-MDU.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
