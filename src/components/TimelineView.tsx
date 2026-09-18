@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ProjectItem, ProjectCategory, InstalledMaterial, ProjectTimelinePhase, PhaseStatus } from '../types';
+import { ProjectItem, ProjectCategory, InstalledMaterial, ProjectTimelinePhase, PhaseStatus, DailyLog } from '../types';
 import { 
   formatDateIndo, 
   formatRupiah, 
@@ -46,7 +46,8 @@ import {
   Flag,
   Truck,
   Activity,
-  Check
+  Check,
+  Printer
 } from 'lucide-react';
 
 interface TimelineViewProps {
@@ -54,6 +55,7 @@ interface TimelineViewProps {
   onOpenDailyLog: (project: ProjectItem) => void;
   onOpenDetail: (project: ProjectItem) => void;
   onUpdateProject?: (project: ProjectItem) => void;
+  onPrintDailyLog?: (project: ProjectItem, log: DailyLog) => void;
 }
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
@@ -61,6 +63,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   onOpenDailyLog,
   onOpenDetail,
   onUpdateProject,
+  onPrintDailyLog,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projects.length > 0 ? projects[0].id : ''
@@ -330,6 +333,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   </option>
                 ))}
               </select>
+
+              {onPrintDailyLog && activeProject.dailyLogs && activeProject.dailyLogs.length > 0 && (
+                <button
+                  onClick={() => {
+                    const latestLog = activeProject.dailyLogs[0];
+                    onPrintDailyLog(activeProject, latestLog);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 shadow-xs"
+                  title="Cetak Laporan Harian Terakhir dalam format PDF"
+                >
+                  <Printer className="w-3.5 h-3.5 text-white" />
+                  <span>Cetak Laporan PDF</span>
+                </button>
+              )}
 
               <button
                 onClick={() => setIsPhaseModalOpen(true)}

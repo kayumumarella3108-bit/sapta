@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectItem, ForemanItem } from '../types';
+import { ProjectItem, ForemanItem, DailyLog } from '../types';
 import { 
   formatRupiah, 
   getCategoryBadge, 
@@ -35,7 +35,8 @@ import {
   Activity,
   CheckCircle2,
   PackagePlus,
-  Compass
+  Compass,
+  Printer
 } from 'lucide-react';
 
 interface ProjectDetailModalProps {
@@ -45,6 +46,7 @@ interface ProjectDetailModalProps {
   onClose: () => void;
   onOpenAddLog: (project: ProjectItem) => void;
   onCreateMaterialRequest?: (project: ProjectItem) => void;
+  onPrintDailyLog?: (project: ProjectItem, log: DailyLog) => void;
 }
 
 export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
@@ -54,6 +56,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
   onClose,
   onOpenAddLog,
   onCreateMaterialRequest,
+  onPrintDailyLog,
 }) => {
   if (!isOpen || !project) return null;
 
@@ -384,7 +387,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                     className="p-4 bg-slate-50 hover:bg-slate-100/70 transition-colors rounded-xl border border-slate-200 text-xs space-y-2.5"
                   >
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
                           📅 {formatDateIndo(log.tanggal)}
                         </span>
@@ -394,14 +397,27 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                         <span className="text-slate-500">
                           Manpower: <strong>{log.manpowerHadir} Orang</strong>
                         </span>
+                        {log.koordinatGps && (
+                          <span className="text-slate-500 font-mono text-[10.5px] bg-slate-200/60 px-1.5 py-0.5 rounded">
+                            📍 {log.koordinatGps}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
                           Progres: {log.progressHariIni}%
                         </span>
-                        <span className="text-slate-400">
-                          Oleh: {log.author}
-                        </span>
+                        {onPrintDailyLog && (
+                          <button
+                            type="button"
+                            onClick={() => onPrintDailyLog(project, log)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-md shadow-2xs text-[11px] transition-colors cursor-pointer"
+                            title="Cetak Laporan Harian PDF Resmi"
+                          >
+                            <Printer className="w-3 h-3 text-amber-400" />
+                            <span>Cetak PDF</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 

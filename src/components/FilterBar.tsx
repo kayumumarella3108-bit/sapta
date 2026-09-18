@@ -6,22 +6,20 @@ interface FilterBarProps {
   filter: ProjectFilter;
   onChange: (filter: ProjectFilter) => void;
   onReset: () => void;
-  categories: { key: ProjectCategory | 'ALL'; label: string }[];
+  categories?: { key: ProjectCategory | 'ALL'; label: string }[];
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
   filter,
   onChange,
   onReset,
-  categories,
 }) => {
   const hasActiveFilters = 
     filter.search !== '' || 
-    filter.status !== 'ALL' || 
-    filter.kategori !== 'ALL';
+    filter.status !== 'ALL';
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3.5">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
       <div className="flex flex-col md:flex-row md:items-center gap-3">
         {/* Search Input */}
         <div className="relative flex-1">
@@ -93,29 +91,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
           )}
         </div>
-      </div>
-
-      {/* Category Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar pt-1 border-t border-slate-100">
-        <span className="text-slate-400 font-medium whitespace-nowrap mr-1">
-          Kategori Sistem:
-        </span>
-        {categories.map((cat) => {
-          const isSelected = filter.kategori === cat.key;
-          return (
-            <button
-              key={cat.key}
-              onClick={() => onChange({ ...filter, kategori: cat.key })}
-              className={`px-3 py-1.5 rounded-full font-medium transition-all whitespace-nowrap cursor-pointer ${
-                isSelected
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-              }`}
-            >
-              {cat.label}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

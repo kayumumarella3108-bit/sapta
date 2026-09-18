@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ProjectItem, DailyLog, InstalledMaterial, MaterialCondition } from '../types';
 import { 
   X, 
@@ -11,10 +11,10 @@ import {
   Package, 
   Plus, 
   Trash2, 
-  Tag, 
-  Layers, 
-  Sparkles,
-  MapPin
+  MapPin,
+  Camera,
+  Printer,
+  Upload
 } from 'lucide-react';
 
 interface DailyLogModalProps {
@@ -22,6 +22,7 @@ interface DailyLogModalProps {
   project: ProjectItem | null;
   onClose: () => void;
   onSaveLog: (projectId: string, log: DailyLog, updatedProgress: number, updatedCatatan: string) => void;
+  onSaveAndPrint?: (projectId: string, log: DailyLog, updatedProgress: number, updatedCatatan: string) => void;
 }
 
 const COMMON_ELECTRICAL_MATERIALS = [
@@ -50,11 +51,14 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
   project,
   onClose,
   onSaveLog,
+  onSaveAndPrint,
 }) => {
   if (!isOpen || !project) return null;
 
   const today = new Date().toISOString().slice(0, 10);
   const [tanggal, setTanggal] = useState(today);
+  const [jamKerjaMulai, setJamKerjaMulai] = useState('08:00');
+  const [jamKerjaSelesai, setJamKerjaSelesai] = useState('17:00');
   const [pekerjaanHariIni, setPekerjaanHariIni] = useState('');
   const [progressHariIni, setProgressHariIni] = useState<number>(project.progressRealisasi);
   const [manpowerHadir, setManpowerHadir] = useState<number>(project.manpower.total);
@@ -63,6 +67,21 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
   const [solusi, setSolusi] = useState('');
   const [catatanK3, setCatatanK3] = useState('Toolbox meeting, APD lengkap & izin kerja K3');
   const [author, setAuthor] = useState(`${project.mandor} (Mandor)`);
+
+  // Geolocation & Titik Lokasi
+  const [titikLokasi, setTitikLokasi] = useState(project.lokasi || '');
+  const [koordinatGps, setKoordinatGps] = useState(
+    project.koordinatGps || 
+    (project.koordinatLat && project.koordinatLng ? `${project.koordinatLat.toFixed(6)}, ${project.koordinatLng.toFixed(6)}` : '-6.176820, 106.830610')
+  );
+
+  // Foto Dokumentasi
+  const [fotoDokumentasi, setFotoDokumentasi] = useState<string[]>([
+    'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'
+  ]);
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Material yang terpasang hari ini
   const [materials, setMaterials] = useState<InstalledMaterial[]>([]);
@@ -109,11 +128,54 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
     setMaterials(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pekerjaanHariIni.trim()) return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const readers: Promise<string>[] = Array.from(files).map((file: File) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            resolve(event.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
 
-    // Filter valid materials that have a name and volume > 0
+      Promise.all(readers).then((results) => {
+        setFotoDokumentasi(prev => [...prev, ...results]);
+      });
+    }
+  };
+
+  const handleAddUrlPhoto = () => {
+    if (newPhotoUrl.trim()) {
+      setFotoDokumentasi(prev => [...prev, newPhotoUrl.trim()]);
+      setNewPhotoUrl('');
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setFotoDokumentasi(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDetectGPS = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+          setKoordinatGps(coords);
+        },
+        (error) => {
+          console.warn('Geolocation failed:', error);
+          if (project.koordinatGps) {
+            setKoordinatGps(project.koordinatGps);
+          }
+        }
+      );
+    }
+  };
+
+  const createLogObject = (): DailyLog => {
     const validMaterials = materials
       .filter(m => m.namaMaterial.trim().length > 0 && m.volume > 0)
       .map(m => ({
@@ -125,9 +187,13 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
         keterangan: m.keterangan?.trim() || undefined,
       }));
 
-    const newLog: DailyLog = {
+    return {
       id: `log-${Date.now()}`,
       tanggal,
+      jamKerjaMulai,
+      jamKerjaSelesai,
+      titikLokasi: titikLokasi.trim() || project.lokasi,
+      koordinatGps: koordinatGps.trim(),
       pekerjaanHariIni,
       progressHariIni: Number(progressHariIni),
       manpowerHadir: Number(manpowerHadir),
@@ -136,16 +202,35 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
       solusi: solusi.trim() || undefined,
       catatanK3: catatanK3.trim() || undefined,
       author: author || 'Pengawas Lapangan',
+      fotoDokumentasi: fotoDokumentasi.length > 0 ? fotoDokumentasi : undefined,
+      fotoKoordinatUrl: fotoDokumentasi[0] || undefined,
       materialTerpasang: validMaterials.length > 0 ? validMaterials : undefined,
     };
+  };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pekerjaanHariIni.trim()) return;
+
+    const newLog = createLogObject();
     onSaveLog(project.id, newLog, Number(progressHariIni), pekerjaanHariIni);
+    onClose();
+  };
+
+  const handleSaveAndPrintClick = () => {
+    if (!pekerjaanHariIni.trim()) return;
+    const newLog = createLogObject();
+    if (onSaveAndPrint) {
+      onSaveAndPrint(project.id, newLog, Number(progressHariIni), pekerjaanHariIni);
+    } else {
+      onSaveLog(project.id, newLog, Number(progressHariIni), pekerjaanHariIni);
+    }
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-4">
+      <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-4">
         {/* Header */}
         <div className="px-6 py-4 bg-amber-500 text-white flex items-center justify-between">
           <div>
@@ -169,8 +254,8 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
-          {/* Tanggal & Cuaca */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Tanggal, Jam Kerja & Cuaca */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
                 Tanggal Realisasi Harian <span className="text-rose-500">*</span>
@@ -179,9 +264,30 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
                 type="date"
                 value={tanggal}
                 onChange={(e) => setTanggal(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 focus:bg-white focus:border-amber-500 focus:outline-none"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                Jam Kerja Lapangan
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="time"
+                  value={jamKerjaMulai}
+                  onChange={(e) => setJamKerjaMulai(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-slate-50 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 focus:bg-white focus:border-amber-500 focus:outline-none"
+                />
+                <span className="text-slate-400 text-xs">s/d</span>
+                <input
+                  type="time"
+                  value={jamKerjaSelesai}
+                  onChange={(e) => setJamKerjaSelesai(e.target.value)}
+                  className="w-full px-2.5 py-2 bg-slate-50 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 focus:bg-white focus:border-amber-500 focus:outline-none"
+                />
+              </div>
             </div>
 
             <div>
@@ -191,139 +297,237 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
               <select
                 value={kondisiCuaca}
                 onChange={(e) => setKondisiCuaca(e.target.value as any)}
-                className="w-full px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm font-medium focus:bg-white focus:border-amber-500 focus:outline-none cursor-pointer"
+                className="w-full px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:bg-white focus:border-amber-500 focus:outline-none cursor-pointer"
               >
-                <option value="Cerah">☀️ Cerah (Optimal Kerja Listrik)</option>
+                <option value="Cerah">☀️ Cerah (Normal / Optimal)</option>
                 <option value="Berawan">⛅ Berawan</option>
-                <option value="Hujan Ringan">🌦️ Hujan Ringan (Perlu Ekstra APD K3)</option>
-                <option value="Hujan Lebat">⛈️ Hujan Lebat (Stop Kerja Bertegangan/Ketinggian)</option>
+                <option value="Hujan Ringan">🌧️ Hujan Ringan (Perlu Ekstra APD K3)</option>
+                <option value="Hujan Lebat">⛈️ Hujan Lebat / Petir (Stop Pekerjaan TM)</option>
               </select>
             </div>
           </div>
 
-          {/* Aktivitas Realisasi Pekerjaan Hari Ini */}
+          {/* Lokasi & Koordinat GPS */}
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                Lokasi &amp; Koordinat GPS Lapangan
+              </label>
+              <button
+                type="button"
+                onClick={handleDetectGPS}
+                className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 bg-amber-100/70 hover:bg-amber-100 px-2 py-0.5 rounded cursor-pointer transition-colors"
+              >
+                📍 Deteksi GPS Lokasi Saya
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Titik Lokasi / Segmen Trase
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Jl. Medan Merdeka, Tiang TM #05 s/d #12"
+                  value={titikLokasi}
+                  onChange={(e) => setTitikLokasi(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Koordinat Geotag (Lat, Lng)
+                </label>
+                <input
+                  type="text"
+                  placeholder="-6.176820, 106.830610"
+                  value={koordinatGps}
+                  onChange={(e) => setKoordinatGps(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-mono focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Deskripsi Realisasi Pekerjaan */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
               Uraian Realisasi Pekerjaan Hari Ini <span className="text-rose-500">*</span>
             </label>
             <textarea
               rows={3}
-              placeholder="Jelaskan progres detail hari ini (contoh: Penarikan kabel tanah segmen 2 sepanjang 300m, pemasangan mof sambungan, instalasi travers tiang no 10-14, pengujian tahanan isolasi / megger test...)"
+              placeholder="Jelaskan detail aktivitas pekerjaan yang diselesaikan hari ini (cth: Galian trase segmen 3 sepanjang 350m, penarikan kabel XLPE 20kV, pengujian megger test tahanan isolasi sebelum jointing)..."
               value={pekerjaanHariIni}
               onChange={(e) => setPekerjaanHariIni(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-sm focus:bg-white focus:border-amber-500 focus:outline-none font-medium"
+              className="w-full px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-800 focus:bg-white focus:border-amber-500 focus:outline-none"
               required
             />
           </div>
 
-          {/* SECTION: INPUT MATERIAL YANG TERPASANG */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200/80 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                  <Package className="w-4 h-4" />
+          {/* Foto Dokumentasi Lapangan & Geotag */}
+          <div className="p-3.5 bg-sky-50/50 rounded-xl border border-sky-200/70 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-sky-950 uppercase flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-sky-600" />
+                Foto Dokumentasi &amp; Geotag Lapangan ({fotoDokumentasi.length} Foto)
+              </label>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 text-[11px] font-bold bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 rounded-lg transition-colors cursor-pointer shadow-2xs"
+              >
+                <Upload className="w-3 h-3" />
+                <span>Upload Foto Lapangan</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* Photo Preview Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {fotoDokumentasi.map((photoUrl, pIdx) => (
+                <div key={pIdx} className="relative group rounded-lg overflow-hidden border border-slate-200 bg-white aspect-4/3">
+                  <img
+                    src={photoUrl}
+                    alt={`Dokumentasi ${pIdx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(pIdx)}
+                      className="p-1.5 bg-rose-600 text-white rounded-md hover:bg-rose-700 cursor-pointer shadow-xs"
+                      title="Hapus foto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <span className="absolute bottom-1 left-1 bg-slate-900/80 text-[9px] font-mono text-white px-1.5 py-0.5 rounded">
+                    Foto #{pIdx + 1}
+                  </span>
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <span>Material Yang Terpasang Hari Ini</span>
-                    <span className="text-[11px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                      {materials.length} Material
-                    </span>
-                  </h4>
-                  <p className="text-xs text-slate-500">
-                    Catat spesifikasi, volume, satuan, dan lokasi titik pemasangan komponen kelistrikan
-                  </p>
-                </div>
+              ))}
+            </div>
+
+            {/* Quick URL Input */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="text"
+                placeholder="Atau tempel link URL foto langsung..."
+                value={newPhotoUrl}
+                onChange={(e) => setNewPhotoUrl(e.target.value)}
+                className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-sky-500"
+              />
+              <button
+                type="button"
+                onClick={handleAddUrlPhoto}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg cursor-pointer"
+              >
+                Tambah URL
+              </button>
+            </div>
+          </div>
+
+          {/* Section: Material Fisik Terpasang Hari Ini */}
+          <div className="space-y-3 p-4 bg-amber-50/60 rounded-xl border border-amber-200/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-amber-600" />
+                  <span>Catatan Komponen / Material Terpasang Hari Ini</span>
+                </h4>
+                <p className="text-[11px] text-amber-800">
+                  Input kuantitas material yang selesai terpasang, ditarik, atau dites di lokasi hari ini.
+                </p>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddMaterialRow}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer self-start sm:self-auto"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Tambah Baris Material</span>
+                <span>+ Tambah Baris Material</span>
               </button>
             </div>
 
-            {/* Quick Preset Buttons for Electrical Materials */}
-            <div>
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                <Sparkles className="w-3 h-3 text-amber-500" />
-                <span>Pilihan Cepat Material Kelistrikan Populer:</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {COMMON_ELECTRICAL_MATERIALS.slice(0, 7).map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleAddPreset(preset)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 rounded-md text-[11px] font-medium transition-colors cursor-pointer"
-                  >
-                    <span>+ {preset.nama.split(' ')[0]} {preset.nama.split(' ')[1]}</span>
-                  </button>
-                ))}
-              </div>
+            {/* Quick Presets */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-slate-500">Pilihan Cepat:</span>
+              {COMMON_ELECTRICAL_MATERIALS.slice(0, 5).map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleAddPreset(preset)}
+                  className="text-[10.5px] px-2 py-0.5 bg-white hover:bg-amber-100 text-slate-700 hover:text-amber-900 border border-slate-200 rounded-md transition-colors cursor-pointer truncate max-w-[200px]"
+                  title={`${preset.nama} (${preset.spec})`}
+                >
+                  + {preset.nama.split(' ')[0]} {preset.nama.split(' ')[1] || ''}
+                </button>
+              ))}
             </div>
 
-            {/* Materials List / Rows */}
+            {/* Material Rows */}
             {materials.length === 0 ? (
-              <div className="text-center py-6 bg-white rounded-lg border border-dashed border-slate-300 text-slate-500 text-xs">
-                <Package className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
-                <p className="font-semibold text-slate-700">Belum ada material yang ditambahkan untuk hari ini</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Klik tombol &quot;Tambah Baris Material&quot; atau pilih material cepat di atas untuk mencatat komponen terpasang.
-                </p>
+              <div className="text-center py-5 bg-white/70 rounded-lg border border-dashed border-amber-200 text-xs text-slate-500">
+                Belum ada material yang ditambahkan untuk hari ini. Klik &quot;+ Tambah Baris Material&quot; atau pilih cepat di atas jika ada pemasangan material.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {materials.map((mat, index) => (
                   <div
                     key={mat.id || index}
-                    className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-2.5 animate-in fade-in duration-100"
+                    className="p-3 bg-white rounded-lg border border-amber-200/90 shadow-2xs space-y-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 inline-flex items-center justify-center text-[10px]">
-                          {index + 1}
-                        </span>
-                        <span>Item Material #{index + 1}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-amber-900 bg-amber-100 px-2 py-0.2 rounded">
+                        Material #{index + 1}
                       </span>
-
                       <button
                         type="button"
                         onClick={() => handleRemoveMaterial(index)}
-                        className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Hapus baris material ini"
+                        className="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Hapus baris"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    {/* Row 1: Nama Material & Spesifikasi */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {/* Nama Material */}
+                      <div className="sm:col-span-2">
                         <label className="block text-[10.5px] font-semibold text-slate-600 mb-0.5">
                           Nama Material / Komponen <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
                           list="material-datalist"
-                          placeholder="cth: Kabel XLPE 3x300mm², Trafo 630kVA..."
+                          placeholder="cth: Kabel XLPE 20kV 3x300mm², Trafo 630kVA..."
                           value={mat.namaMaterial}
                           onChange={(e) => handleUpdateMaterial(index, 'namaMaterial', e.target.value)}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:border-amber-500 focus:outline-none"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:bg-white focus:border-amber-500 focus:outline-none"
                           required
                         />
                       </div>
 
+                      {/* Spesifikasi Teknis */}
                       <div>
                         <label className="block text-[10.5px] font-semibold text-slate-600 mb-0.5">
-                          Spesifikasi Teknis / Merk / Tipe
+                          Spesifikasi / Merk / Tipe
                         </label>
                         <input
                           type="text"
-                          placeholder="cth: N2XSY 20kV / Trafindo / SPLN D3.019..."
+                          placeholder="cth: N2XSY SPLN, Trafindo Dyn5..."
                           value={mat.spesifikasi || ''}
                           onChange={(e) => handleUpdateMaterial(index, 'spesifikasi', e.target.value)}
                           className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:border-amber-500 focus:outline-none"
@@ -331,8 +535,7 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Row 2: Volume, Satuan, Lokasi Titik, Status */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div>
                         <label className="block text-[10.5px] font-semibold text-slate-600 mb-0.5">
                           Volume Terpasang <span className="text-rose-500">*</span>
@@ -340,11 +543,10 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
                         <input
                           type="number"
                           step="any"
-                          min="0.1"
-                          placeholder="0"
-                          value={mat.volume || ''}
+                          min="0.01"
+                          value={mat.volume}
                           onChange={(e) => handleUpdateMaterial(index, 'volume', parseFloat(e.target.value) || 0)}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:outline-none"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-amber-700 focus:bg-white focus:border-amber-500 focus:outline-none"
                           required
                         />
                       </div>
@@ -532,18 +734,18 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
           </div>
 
           {/* Footer Action */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs text-slate-500 font-medium">
               {materials.length > 0 ? (
                 <span className="text-amber-700 font-semibold">
-                  📦 {materials.length} material terpasang siap disimpan
+                  📦 {materials.length} material terpasang siap dicatat
                 </span>
               ) : (
                 <span>Tanpa catatan material baru</span>
               )}
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-auto justify-end">
               <button
                 type="button"
                 onClick={onClose}
@@ -551,6 +753,16 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
               >
                 Batal
               </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAndPrintClick}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-amber-400" />
+                <span>Simpan &amp; Cetak PDF</span>
+              </button>
+
               <button
                 type="submit"
                 className="inline-flex items-center gap-1.5 px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
@@ -565,4 +777,3 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
     </div>
   );
 };
-

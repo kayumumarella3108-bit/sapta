@@ -39,6 +39,12 @@ export interface DailyLog {
   catatanK3?: string;
   author: string;
   materialTerpasang?: InstalledMaterial[];
+  koordinatGps?: string; // e.g. "-6.176820, 106.830610"
+  titikLokasi?: string;
+  jamKerjaMulai?: string; // e.g. "08:00"
+  jamKerjaSelesai?: string; // e.g. "17:00"
+  fotoDokumentasi?: string[]; // Array of photo URLs or base64 strings
+  fotoKoordinatUrl?: string; // Photo with coordinate watermark or map snapshot
 }
 
 export interface ProjectItem {

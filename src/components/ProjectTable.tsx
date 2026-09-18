@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectItem } from '../types';
+import { ProjectItem, DailyLog } from '../types';
 import { 
   formatRupiah, 
   getStatusBadge, 
@@ -18,7 +18,8 @@ import {
   Clock, 
   Zap, 
   AlertCircle,
-  PackagePlus
+  PackagePlus,
+  Printer
 } from 'lucide-react';
 
 interface ProjectTableProps {
@@ -28,6 +29,7 @@ interface ProjectTableProps {
   onEditProject: (project: ProjectItem) => void;
   onDeleteProject: (id: string, namaPekerjaan: string) => void;
   onCreateMaterialRequest?: (project: ProjectItem) => void;
+  onPrintDailyLog?: (project: ProjectItem, log: DailyLog) => void;
 }
 
 export const ProjectTable: React.FC<ProjectTableProps> = ({
@@ -37,6 +39,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   onEditProject,
   onDeleteProject,
   onCreateMaterialRequest,
+  onPrintDailyLog,
 }) => {
   if (projects.length === 0) {
     return (
@@ -230,6 +233,18 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
                       >
                         <PlusCircle className="w-4 h-4" />
                       </button>
+
+                      {/* Cetak Laporan Harian Terakhir PDF */}
+                      {onPrintDailyLog && item.dailyLogs && item.dailyLogs.length > 0 && (
+                        <button
+                          id={`btn-print-log-${item.id}`}
+                          onClick={() => onPrintDailyLog(item, item.dailyLogs[0])}
+                          className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          title="Cetak Laporan Harian PDF Resmi PT SMK"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      )}
 
                       {/* Buat Bon Permintaan MDU/Non-MDU */}
                       {onCreateMaterialRequest && (

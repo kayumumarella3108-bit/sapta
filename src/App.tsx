@@ -15,6 +15,7 @@ import { ProjectTable } from './components/ProjectTable';
 import { TimelineView } from './components/TimelineView';
 import { ProjectModal } from './components/ProjectModal';
 import { DailyLogModal } from './components/DailyLogModal';
+import { DailyLogPrintModal } from './components/DailyLogPrintModal';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
 import { PrintReportView } from './components/PrintReportView';
 import { ImportSPBJModal } from './components/ImportSPBJModal';
@@ -32,6 +33,7 @@ import { WorkPlanList } from './components/WorkPlanList';
 import { WorkPlanModal } from './components/WorkPlanModal';
 import { WorkPlanPrintModal } from './components/WorkPlanPrintModal';
 import { ConfirmModal } from './components/ConfirmModal';
+import { Sidebar, ActiveViewType } from './components/Sidebar';
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -40,6 +42,7 @@ import {
   Zap, 
   LayoutList, 
   Calendar, 
+  CalendarCheck2,
   Package, 
   Sparkles,
   PackagePlus,
@@ -352,6 +355,11 @@ export default function App() {
   const [isDailyLogModalOpen, setIsDailyLogModalOpen] = useState(false);
   const [dailyLogProject, setDailyLogProject] = useState<ProjectItem | null>(null);
 
+  // Daily Log PDF Print Modal state
+  const [isDailyLogPrintModalOpen, setIsDailyLogPrintModalOpen] = useState(false);
+  const [printingDailyLogProject, setPrintingDailyLogProject] = useState<ProjectItem | null>(null);
+  const [printingDailyLogItem, setPrintingDailyLogItem] = useState<DailyLog | null>(null);
+
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailProject, setDetailProject] = useState<ProjectItem | null>(null);
 
@@ -388,7 +396,8 @@ export default function App() {
   const [printingWorkPlan, setPrintingWorkPlan] = useState<WorkPlan | null>(null);
 
   // Active View: Table, Timeline, Material Requests, Master Materials, Material Shipments, Foremen, or Work Plans
-  const [activeView, setActiveView] = useState<'table' | 'timeline' | 'material-requests' | 'master-materials' | 'material-shipments' | 'foremen' | 'work-plans'>('table');
+  const [activeView, setActiveView] = useState<ActiveViewType>('table');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
   // Custom In-App Confirmation Modal (ensures 100% reliability in sandboxed iframes without window.confirm)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -529,6 +538,27 @@ export default function App() {
       );
     }
     showToast('Laporan harian pekerjaan berhasil disimpan.', 'success');
+  };
+
+  const handleOpenDailyLogPrint = (project: ProjectItem, log: DailyLog) => {
+    setPrintingDailyLogProject(project);
+    setPrintingDailyLogItem(log);
+    setIsDailyLogPrintModalOpen(true);
+  };
+
+  const handleSaveAndPrintDailyLog = (
+    projectId: string,
+    log: DailyLog,
+    updatedProgress: number,
+    updatedCatatan: string
+  ) => {
+    handleSaveDailyLog(projectId, log, updatedProgress, updatedCatatan);
+    const targetProject = projects.find((p) => p.id === projectId) || dailyLogProject;
+    if (targetProject) {
+      setPrintingDailyLogProject(targetProject);
+      setPrintingDailyLogItem(log);
+      setIsDailyLogPrintModalOpen(true);
+    }
   };
 
   const handleImportSuccess = (newProject: ProjectItem) => {
@@ -858,174 +888,82 @@ export default function App() {
         onImportSPBJ={() => setIsImportModalOpen(true)}
         onExportCSV={() => exportProjectsToCSV(filteredProjects)}
         onPrintReport={() => setIsPrintModalOpen(true)}
-        onResetData={handleResetToDefault}
-        onOpenMaterialRequests={() => setActiveView('material-requests')}
-        onOpenMasterMaterials={() => setActiveView('master-materials')}
-        onOpenMaterialShipments={() => setActiveView('material-shipments')}
-        onOpenForemen={() => setActiveView('foremen')}
-        onOpenWorkPlans={() => setActiveView('work-plans')}
-        totalProjects={projects.length}
-        totalMaterialRequests={materialRequests.length}
-        totalMasterMaterials={masterMaterials.length}
-        totalMaterialShipments={materialShipments.length}
-        totalForemen={foremen.length}
-        totalWorkPlans={workPlans.length}
         currentUser={currentUser}
         onLogin={handleGoogleLogin}
         onLogout={handleLogout}
         isCloudConnected={isCloudConnected}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
       />
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
-        {/* KPI & Summary Cards */}
-        <StatsOverview projects={projects} />
+      {/* Main App Container with Left Sidebar & Content */}
+      <div className="flex-1 flex flex-col lg:flex-row w-full min-h-[calc(100vh-65px)] bg-slate-50/50">
+        {/* Left Sidebar Menu (Berjejer dari Atas ke Bawah) */}
+        <Sidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          totalProjects={projects.length}
+          totalInstalledMaterials={totalInstalledMaterials}
+          totalWorkPlans={workPlans.length}
+          totalMaterialRequests={materialRequests.length}
+          totalMaterialShipments={materialShipments.length}
+          totalForemen={foremen.length}
+          totalMasterMaterials={masterMaterials.length}
+          onAddProject={() => {
+            setEditingProject(null);
+            setIsProjectModalOpen(true);
+          }}
+          onImportSPBJ={() => setIsImportModalOpen(true)}
+          onExportCSV={() => exportProjectsToCSV(filteredProjects)}
+          onPrintReport={() => setIsPrintModalOpen(true)}
+          onResetData={handleResetToDefault}
+          isOpenMobile={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        />
 
-        {/* Dashboard Visual Charts (Recharts Pie & Bar Charts) */}
-        <ProjectSummaryCharts projects={projects} />
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6 max-w-full overflow-x-hidden">
+          {/* KPI & Summary Cards */}
+          <StatsOverview projects={projects} />
 
-        {/* View Switcher Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-2">
-          <div className="flex flex-wrap items-center gap-2 bg-slate-200/80 p-1 rounded-xl w-fit">
-            <button
-              onClick={() => setActiveView('table')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'table'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <LayoutList className="w-4 h-4 text-amber-500" />
-              <span>Daftar Monitoring Pekerjaan</span>
-              <span className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold border border-slate-200">
-                {projects.length} SPBJ
-              </span>
-            </button>
+          {/* Dashboard Visual Charts (Shown on Table View) */}
+          {activeView === 'table' && (
+            <ProjectSummaryCharts projects={projects} />
+          )}
 
-            <button
-              onClick={() => setActiveView('timeline')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'timeline'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Calendar className="w-4 h-4 text-blue-500" />
-              <span>Timeline &amp; Realisasi</span>
-              <span className="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold border border-amber-200">
-                {totalInstalledMaterials} Material
-              </span>
-            </button>
+          {/* View Conditional Render */}
+          {activeView === 'table' ? (
+            <>
+              {/* Filter Bar */}
+              <FilterBar
+                filter={filter}
+                onChange={setFilter}
+                onReset={handleResetFilters}
+              />
 
-            <button
-              onClick={() => setActiveView('work-plans')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'work-plans'
-                  ? 'bg-white text-amber-950 shadow-xs ring-1 ring-amber-400'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Calendar className="w-4 h-4 text-amber-600" />
-              <span>Rencana Kerja</span>
-              <span className="text-[11px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black">
-                {workPlans.length} Rencana
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('material-requests')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'material-requests'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <PackagePlus className="w-4 h-4 text-amber-600" />
-              <span>Kebutuhan Material</span>
-              <span className="text-[11px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black">
-                {materialRequests.length} Bon
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('material-shipments')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'material-shipments'
-                  ? 'bg-white text-blue-950 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Truck className="w-4 h-4 text-blue-600" />
-              <span>Pengiriman Material (Ekspedisi)</span>
-              <span className="text-[11px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">
-                {materialShipments.length} Kirim
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('foremen')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'foremen'
-                  ? 'bg-white text-amber-950 shadow-xs ring-1 ring-amber-300'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <HardHat className="w-4 h-4 text-amber-600" />
-              <span>Daftar Mandor</span>
-              <span className="text-[11px] bg-slate-800 text-amber-300 px-2 py-0.5 rounded-full font-bold">
-                {foremen.length} Mandor
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('master-materials')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                activeView === 'master-materials'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Database className="w-4 h-4 text-amber-600" />
-              <span>Master MDU &amp; Non-MDU</span>
-              <span className="text-[11px] bg-slate-800 text-white px-2 py-0.5 rounded-full font-bold">
-                {masterMaterials.length} Item
-              </span>
-            </button>
-          </div>
-
-          <div className="text-xs text-slate-500 font-medium">
-            {activeView === 'table' ? (
-              <span>Menampilkan tabel lengkap No, SPBJ, PIC, Mandor &amp; Manpower</span>
-            ) : activeView === 'timeline' ? (
-              <span>Matriks waktu Gantt, kronologi harian &amp; rekap material fisik</span>
-            ) : activeView === 'work-plans' ? (
-              <span>Perencanaan jadwal harian/mingguan: tanggal, lokasi kerja, PIC, mandor &amp; uraian pekerjaan</span>
-            ) : activeView === 'material-requests' ? (
-              <span>Formulir Bon Permintaan Material MDU &amp; Non-MDU, cetak resmi, export PDF &amp; Excel</span>
-            ) : activeView === 'material-shipments' ? (
-              <span>Pencatatan Surat Jalan Pengiriman Material, Ekspedisi, Armada &amp; Master MDU / Non-MDU</span>
-            ) : activeView === 'foremen' ? (
-              <span>Daftar Mandor pelaksana lapangan dengan penugasan ke lebih dari 1 lokasi proyek &amp; PIC pengawas</span>
-            ) : (
-              <span>Katalog resmi Master Material MDU dan Non-MDU PLN standar SPLN</span>
-            )}
-          </div>
-        </div>
-
-        {/* View Conditional Render */}
-        {activeView === 'table' ? (
-          <>
-            {/* Filter Bar */}
-            <FilterBar
-              filter={filter}
-              onChange={setFilter}
-              onReset={handleResetFilters}
-              categories={CATEGORIES}
-            />
-
-            {/* Project Table (With Required Fields: No, Nama Pekerjaan, Lokasi, Nilai Kontrak, No SPBJ, PIC, Mandor Manpower) */}
-            <ProjectTable
-              projects={filteredProjects}
+              {/* Project Table (With Required Fields: No, Nama Pekerjaan, Lokasi, Nilai Kontrak, No SPBJ, PIC, Mandor Manpower) */}
+              <ProjectTable
+                projects={filteredProjects}
+                onOpenDailyLog={(p) => {
+                  setDailyLogProject(p);
+                  setIsDailyLogModalOpen(true);
+                }}
+                onOpenDetail={(p) => {
+                  setDetailProject(p);
+                  setIsDetailModalOpen(true);
+                }}
+                onEditProject={(p) => {
+                  setEditingProject(p);
+                  setIsProjectModalOpen(true);
+                }}
+                onDeleteProject={handleDeleteProject}
+                onCreateMaterialRequest={handleCreateMaterialRequestForProject}
+                onPrintDailyLog={handleOpenDailyLogPrint}
+              />
+            </>
+          ) : activeView === 'timeline' ? (
+            /* Timeline & Installed Material View */
+            <TimelineView
+              projects={projects}
               onOpenDailyLog={(p) => {
                 setDailyLogProject(p);
                 setIsDailyLogModalOpen(true);
@@ -1034,122 +972,104 @@ export default function App() {
                 setDetailProject(p);
                 setIsDetailModalOpen(true);
               }}
-              onEditProject={(p) => {
-                setEditingProject(p);
-                setIsProjectModalOpen(true);
-              }}
-              onDeleteProject={handleDeleteProject}
-              onCreateMaterialRequest={handleCreateMaterialRequestForProject}
+              onUpdateProject={handleSaveProject}
+              onPrintDailyLog={handleOpenDailyLogPrint}
             />
-          </>
-        ) : activeView === 'timeline' ? (
-          /* Timeline & Installed Material View */
-          <TimelineView
-            projects={projects}
-            onOpenDailyLog={(p) => {
-              setDailyLogProject(p);
-              setIsDailyLogModalOpen(true);
-            }}
-            onOpenDetail={(p) => {
-              setDetailProject(p);
-              setIsDetailModalOpen(true);
-            }}
-            onUpdateProject={handleSaveProject}
-          />
-        ) : activeView === 'work-plans' ? (
-          /* Work Plan View (Rencana Kerja Lapangan) */
-          <WorkPlanList
-            workPlans={workPlans}
-            projects={projects}
-            foremen={foremen}
-            onAddPlan={() => {
-              setEditingWorkPlan(null);
-              setIsWorkPlanModalOpen(true);
-            }}
-            onEditPlan={(plan) => {
-              setEditingWorkPlan(plan);
-              setIsWorkPlanModalOpen(true);
-            }}
-            onDeletePlan={handleDeleteWorkPlan}
-            onUpdatePlan={handleUpdateWorkPlan}
-            onPrintPlan={(plan) => {
-              setPrintingWorkPlan(plan);
-              setIsWorkPlanPrintModalOpen(true);
-            }}
-          />
-        ) : activeView === 'material-requests' ? (
-          /* Material Requests View (MDU & Non-MDU) */
-          <MaterialRequestList
-            requests={materialRequests}
-            onCreateNew={() => {
-              setEditingMaterialRequest(null);
-              setPrefilledProjectIdForRequest(null);
-              setIsMaterialRequestModalOpen(true);
-            }}
-            onEdit={(req) => {
-              setEditingMaterialRequest(req);
-              setPrefilledProjectIdForRequest(null);
-              setIsMaterialRequestModalOpen(true);
-            }}
-            onDelete={handleDeleteMaterialRequest}
-            onPrint={(req) => {
-              setPrintingMaterialRequest(req);
-              setIsMaterialRequestPrintModalOpen(true);
-            }}
-          />
-        ) : activeView === 'material-shipments' ? (
-          /* Material Shipments View (Ekspedisi & Surat Jalan) */
-          <MaterialShipmentList
-            shipments={materialShipments}
-            onCreateNew={() => {
-              setEditingMaterialShipment(null);
-              setIsMaterialShipmentModalOpen(true);
-            }}
-            onEdit={(shipment) => {
-              setEditingMaterialShipment(shipment);
-              setIsMaterialShipmentModalOpen(true);
-            }}
-            onDelete={handleDeleteMaterialShipment}
-            onPrint={(shipment) => {
-              setPrintingMaterialShipment(shipment);
-              setIsMaterialShipmentPrintModalOpen(true);
-            }}
-            onStatusChange={handleStatusChangeMaterialShipment}
-          />
-        ) : activeView === 'foremen' ? (
-          /* Foremen View (Daftar Mandor, Multi-Lokasi & PIC) */
-          <ForemanList
-            foremen={foremen}
-            onCreateNew={() => {
-              setEditingForeman(null);
-              setIsForemanModalOpen(true);
-            }}
-            onEdit={(f) => {
-              setEditingForeman(f);
-              setIsForemanModalOpen(true);
-            }}
-            onDelete={handleDeleteForeman}
-            onStatusChange={handleStatusChangeForeman}
-          />
-        ) : (
-          /* Master Material View (MDU & Non-MDU) */
-          <MasterMaterialView
-            materials={masterMaterials}
-            onAddMaterial={(cat) => {
-              setEditingMasterMaterial(null);
-              setDefaultCategoryForMasterModal(cat || 'MDU');
-              setIsMasterMaterialModalOpen(true);
-            }}
-            onEditMaterial={(item) => {
-              setEditingMasterMaterial(item);
-              setIsMasterMaterialModalOpen(true);
-            }}
-            onDeleteMaterial={handleDeleteMasterMaterial}
-            onResetToDefault={handleResetMasterMaterials}
-            onOpenMaterialRequests={() => setActiveView('material-requests')}
-          />
-        )}
-      </main>
+          ) : activeView === 'work-plans' ? (
+            /* Work Plan View (Rencana Kerja Lapangan) */
+            <WorkPlanList
+              workPlans={workPlans}
+              projects={projects}
+              foremen={foremen}
+              onAddPlan={() => {
+                setEditingWorkPlan(null);
+                setIsWorkPlanModalOpen(true);
+              }}
+              onEditPlan={(plan) => {
+                setEditingWorkPlan(plan);
+                setIsWorkPlanModalOpen(true);
+              }}
+              onDeletePlan={handleDeleteWorkPlan}
+              onUpdatePlan={handleUpdateWorkPlan}
+              onPrintPlan={(plan) => {
+                setPrintingWorkPlan(plan);
+                setIsWorkPlanPrintModalOpen(true);
+              }}
+            />
+          ) : activeView === 'material-requests' ? (
+            /* Material Requests View (MDU & Non-MDU) */
+            <MaterialRequestList
+              requests={materialRequests}
+              onCreateNew={() => {
+                setEditingMaterialRequest(null);
+                setPrefilledProjectIdForRequest(null);
+                setIsMaterialRequestModalOpen(true);
+              }}
+              onEdit={(req) => {
+                setEditingMaterialRequest(req);
+                setPrefilledProjectIdForRequest(null);
+                setIsMaterialRequestModalOpen(true);
+              }}
+              onDelete={handleDeleteMaterialRequest}
+              onPrint={(req) => {
+                setPrintingMaterialRequest(req);
+                setIsMaterialRequestPrintModalOpen(true);
+              }}
+            />
+          ) : activeView === 'material-shipments' ? (
+            /* Material Shipments View (Ekspedisi & Surat Jalan) */
+            <MaterialShipmentList
+              shipments={materialShipments}
+              onCreateNew={() => {
+                setEditingMaterialShipment(null);
+                setIsMaterialShipmentModalOpen(true);
+              }}
+              onEdit={(shipment) => {
+                setEditingMaterialShipment(shipment);
+                setIsMaterialShipmentModalOpen(true);
+              }}
+              onDelete={handleDeleteMaterialShipment}
+              onPrint={(shipment) => {
+                setPrintingMaterialShipment(shipment);
+                setIsMaterialShipmentPrintModalOpen(true);
+              }}
+              onStatusChange={handleStatusChangeMaterialShipment}
+            />
+          ) : activeView === 'foremen' ? (
+            /* Foremen View (Daftar Mandor, Multi-Lokasi & PIC) */
+            <ForemanList
+              foremen={foremen}
+              onCreateNew={() => {
+                setEditingForeman(null);
+                setIsForemanModalOpen(true);
+              }}
+              onEdit={(f) => {
+                setEditingForeman(f);
+                setIsForemanModalOpen(true);
+              }}
+              onDelete={handleDeleteForeman}
+              onStatusChange={handleStatusChangeForeman}
+            />
+          ) : (
+            /* Master Material View (MDU & Non-MDU) */
+            <MasterMaterialView
+              materials={masterMaterials}
+              onAddMaterial={(cat) => {
+                setEditingMasterMaterial(null);
+                setDefaultCategoryForMasterModal(cat || 'MDU');
+                setIsMasterMaterialModalOpen(true);
+              }}
+              onEditMaterial={(item) => {
+                setEditingMasterMaterial(item);
+                setIsMasterMaterialModalOpen(true);
+              }}
+              onDeleteMaterial={handleDeleteMasterMaterial}
+              onResetToDefault={handleResetMasterMaterials}
+              onOpenMaterialRequests={() => setActiveView('material-requests')}
+            />
+          )}
+        </main>
+      </div>
 
       {/* Modals */}
       {/* 1. Project Create/Edit Modal */}
@@ -1174,6 +1094,20 @@ export default function App() {
           setDailyLogProject(null);
         }}
         onSaveLog={handleSaveDailyLog}
+        onSaveAndPrint={handleSaveAndPrintDailyLog}
+      />
+
+      {/* 2b. Daily Log Single Print / Export PDF Modal */}
+      <DailyLogPrintModal
+        isOpen={isDailyLogPrintModalOpen}
+        onClose={() => {
+          setIsDailyLogPrintModalOpen(false);
+          setPrintingDailyLogProject(null);
+          setPrintingDailyLogItem(null);
+        }}
+        project={printingDailyLogProject}
+        dailyLog={printingDailyLogItem}
+        foremen={foremen}
       />
 
       {/* 3. Project Detail & Logs History Modal */}
@@ -1194,6 +1128,7 @@ export default function App() {
           setIsDetailModalOpen(false);
           handleCreateMaterialRequestForProject(p);
         }}
+        onPrintDailyLog={handleOpenDailyLogPrint}
       />
 
       {/* 4. Print Official SPBJ Daily Report View */}
