@@ -33,7 +33,8 @@ import {
   AlertTriangle,
   Flame,
   LayoutGrid,
-  Table as TableIcon
+  Table as TableIcon,
+  Presentation
 } from 'lucide-react';
 import { formatDateIndo } from '../utils/formatters';
 
@@ -46,6 +47,7 @@ interface WorkPlanListProps {
   onDeletePlan: (id: string) => void;
   onUpdatePlan: (plan: WorkPlan) => void;
   onPrintPlan: (plan: WorkPlan) => void;
+  onDownloadPPT?: () => void;
 }
 
 export const WorkPlanList: React.FC<WorkPlanListProps> = ({
@@ -57,6 +59,7 @@ export const WorkPlanList: React.FC<WorkPlanListProps> = ({
   onDeletePlan,
   onUpdatePlan,
   onPrintPlan,
+  onDownloadPPT,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -316,6 +319,18 @@ export const WorkPlanList: React.FC<WorkPlanListProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {onDownloadPPT && (
+            <button
+              id="btn-download-ppt-workplans"
+              onClick={onDownloadPPT}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-xs font-bold text-amber-300 border border-amber-500/40 transition-all shadow-xs cursor-pointer"
+              title="Download Presentasi PPT Rencana Kerja Lapangan"
+            >
+              <Presentation className="w-4 h-4 text-amber-400" />
+              <span>Download PPT</span>
+            </button>
+          )}
+
           <button
             onClick={handleExportAllCSV}
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white border border-slate-700 transition-all shadow-xs cursor-pointer"

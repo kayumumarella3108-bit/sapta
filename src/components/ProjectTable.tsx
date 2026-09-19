@@ -19,7 +19,8 @@ import {
   Zap, 
   AlertCircle,
   PackagePlus,
-  Printer
+  Printer,
+  Presentation
 } from 'lucide-react';
 
 interface ProjectTableProps {
@@ -30,6 +31,7 @@ interface ProjectTableProps {
   onDeleteProject: (id: string, namaPekerjaan: string) => void;
   onCreateMaterialRequest?: (project: ProjectItem) => void;
   onPrintDailyLog?: (project: ProjectItem, log: DailyLog) => void;
+  onDownloadPPT?: () => void;
 }
 
 export const ProjectTable: React.FC<ProjectTableProps> = ({
@@ -40,6 +42,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   onDeleteProject,
   onCreateMaterialRequest,
   onPrintDailyLog,
+  onDownloadPPT,
 }) => {
   if (projects.length === 0) {
     return (
@@ -58,7 +61,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       {/* Table Title Bar */}
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+      <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-500" />
           <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
@@ -68,9 +71,22 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
             {projects.length} SPBJ
           </span>
         </div>
-        <div className="text-xs text-slate-500 flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span>Realtime Daily Tracking</span>
+        <div className="flex items-center gap-2">
+          {onDownloadPPT && (
+            <button
+              id="btn-download-ppt-projects-table"
+              onClick={onDownloadPPT}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-colors cursor-pointer shadow-2xs"
+              title="Download Presentasi PPT Monitoring Pekerjaan SPBJ"
+            >
+              <Presentation className="w-3.5 h-3.5 text-amber-600" />
+              <span>Download PPT Proyek</span>
+            </button>
+          )}
+          <div className="text-xs text-slate-500 hidden sm:flex items-center gap-1.5 pl-2 border-l border-slate-200">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Realtime Daily Tracking</span>
+          </div>
         </div>
       </div>
 

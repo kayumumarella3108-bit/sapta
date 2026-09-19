@@ -16,7 +16,8 @@ import {
   PackageCheck,
   Coins,
   Sparkles,
-  Info
+  Info,
+  Presentation
 } from 'lucide-react';
 import { MasterMaterialCategory, MasterMaterialItem } from '../types';
 import { exportMasterMaterialsToExcel, exportMasterMaterialsToCSV } from '../utils/masterMaterialExport';
@@ -28,6 +29,7 @@ interface MasterMaterialViewProps {
   onDeleteMaterial: (id: string, namaMaterial: string) => void;
   onResetToDefault: () => void;
   onOpenMaterialRequests?: () => void;
+  onDownloadPPT?: () => void;
 }
 
 export const MasterMaterialView: React.FC<MasterMaterialViewProps> = ({
@@ -37,6 +39,7 @@ export const MasterMaterialView: React.FC<MasterMaterialViewProps> = ({
   onDeleteMaterial,
   onResetToDefault,
   onOpenMaterialRequests,
+  onDownloadPPT,
 }) => {
   const [activeTab, setActiveTab] = useState<'ALL' | 'MDU' | 'NON_MDU'>('ALL');
   const [search, setSearch] = useState('');
@@ -209,6 +212,18 @@ export const MasterMaterialView: React.FC<MasterMaterialViewProps> = ({
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-2">
+              {onDownloadPPT && (
+                <button
+                  id="btn-download-ppt-master-materials"
+                  onClick={onDownloadPPT}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+                  title="Download Presentasi PPT Master Data Material PLN"
+                >
+                  <Presentation className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Download PPT</span>
+                </button>
+              )}
+
               <button
                 onClick={handleExportExcel}
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold rounded-lg transition-colors cursor-pointer"

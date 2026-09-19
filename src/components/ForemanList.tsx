@@ -20,7 +20,8 @@ import {
   Printer,
   ChevronDown,
   Building2,
-  Sparkles
+  Sparkles,
+  Presentation
 } from 'lucide-react';
 import { ForemanItem, ForemanStatus, ForemanAssignment } from '../types';
 
@@ -30,6 +31,7 @@ interface ForemanListProps {
   onEdit: (foreman: ForemanItem) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, newStatus: ForemanStatus) => void;
+  onDownloadPPT?: () => void;
 }
 
 export const ForemanList: React.FC<ForemanListProps> = ({
@@ -38,6 +40,7 @@ export const ForemanList: React.FC<ForemanListProps> = ({
   onEdit,
   onDelete,
   onStatusChange,
+  onDownloadPPT,
 }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -297,6 +300,19 @@ export const ForemanList: React.FC<ForemanListProps> = ({
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Download PPT */}
+            {onDownloadPPT && (
+              <button
+                id="btn-download-ppt-foremen"
+                onClick={onDownloadPPT}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-colors cursor-pointer"
+                title="Download Presentasi PPT Data Mandor & Manpower"
+              >
+                <Presentation className="w-3.5 h-3.5 text-amber-600" />
+                <span>Download PPT</span>
+              </button>
+            )}
+
             {/* Export CSV */}
             <button
               onClick={handleExportCSV}

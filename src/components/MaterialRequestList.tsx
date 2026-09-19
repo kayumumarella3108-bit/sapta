@@ -18,7 +18,8 @@ import {
   Clock, 
   Plus, 
   ExternalLink,
-  RotateCcw
+  RotateCcw,
+  Presentation
 } from 'lucide-react';
 import { MaterialRequest, MaterialRequestStatus } from '../types';
 import { formatDateIndo } from '../utils/formatters';
@@ -35,6 +36,7 @@ interface MaterialRequestListProps {
   onEdit: (request: MaterialRequest) => void;
   onDelete: (id: string) => void;
   onPrint: (request: MaterialRequest) => void;
+  onDownloadPPT?: () => void;
 }
 
 export const MaterialRequestList: React.FC<MaterialRequestListProps> = ({
@@ -43,6 +45,7 @@ export const MaterialRequestList: React.FC<MaterialRequestListProps> = ({
   onEdit,
   onDelete,
   onPrint,
+  onDownloadPPT,
 }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -184,8 +187,20 @@ export const MaterialRequestList: React.FC<MaterialRequestListProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons: Add Request & Export All Excel */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Action Buttons: Add Request & Export All Excel & PPT */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {onDownloadPPT && (
+            <button
+              id="btn-download-ppt-material-requests"
+              onClick={onDownloadPPT}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+              title="Download Presentasi PPT Kebutuhan Material (Bon MDU/Non-MDU)"
+            >
+              <Presentation className="w-3.5 h-3.5 text-amber-600" />
+              <span>Download PPT</span>
+            </button>
+          )}
+
           <button
             onClick={handleExportAllExcel}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold rounded-lg transition-colors cursor-pointer"

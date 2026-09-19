@@ -11,6 +11,7 @@ import {
   LogOut,
   User as UserIcon,
   Menu,
+  Presentation,
 } from 'lucide-react';
 import { formatDateIndo } from '../utils/formatters';
 import type { User } from 'firebase/auth';
@@ -20,6 +21,7 @@ interface HeaderProps {
   onImportSPBJ: () => void;
   onExportCSV: () => void;
   onPrintReport: () => void;
+  onOpenPPTModal?: () => void;
   currentUser?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
@@ -32,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   onImportSPBJ,
   onExportCSV,
   onPrintReport,
+  onOpenPPTModal,
   currentUser = null,
   onLogin,
   onLogout,
@@ -101,6 +104,19 @@ export const Header: React.FC<HeaderProps> = ({
               <FileUp className="w-3.5 h-3.5 text-amber-400" />
               <span>Import SPBJ</span>
             </button>
+
+            {/* Quick Action: Download PPT */}
+            {onOpenPPTModal && (
+              <button
+                id="btn-header-open-ppt-modal"
+                onClick={onOpenPPTModal}
+                className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-colors cursor-pointer"
+                title="Download Presentasi PowerPoint (.PPTX) per Menu"
+              >
+                <Presentation className="w-3.5 h-3.5 text-amber-600" />
+                <span>Download PPT</span>
+              </button>
+            )}
 
             {/* Quick Action: Excel */}
             <button

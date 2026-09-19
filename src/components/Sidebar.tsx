@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Sparkles,
+  Presentation,
   X
 } from 'lucide-react';
 
@@ -42,6 +43,7 @@ interface SidebarProps {
   onImportSPBJ: () => void;
   onExportCSV: () => void;
   onPrintReport: () => void;
+  onOpenPPTModal?: () => void;
   onResetData: () => void;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
@@ -61,6 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onImportSPBJ,
   onExportCSV,
   onPrintReport,
+  onOpenPPTModal,
   onResetData,
   isOpenMobile = false,
   onCloseMobile,
@@ -298,6 +301,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="block text-[10px] text-amber-950 font-medium">Input data manual</span>
                 </div>
               </button>
+
+              {/* Download PPT Presentasi */}
+              {onOpenPPTModal && (
+                <button
+                  id="btn-sidebar-open-ppt-modal"
+                  onClick={() => {
+                    onOpenPPTModal();
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition-colors cursor-pointer border border-amber-300 shadow-2xs"
+                  title="Buka Pusat Unduh Presentasi PowerPoint (.PPTX) per Menu"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
+                    <Presentation className="w-4 h-4 text-amber-900" />
+                  </div>
+                  <div className="truncate">
+                    <span className="block font-bold">Download PPT per Menu</span>
+                    <span className="block text-[10px] text-amber-700 font-medium">PowerPoint .pptx 16:9</span>
+                  </div>
+                </button>
+              )}
 
               <div className="grid grid-cols-2 gap-1.5 pt-1">
                 {/* Export Excel */}

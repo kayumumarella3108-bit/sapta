@@ -10,6 +10,7 @@ import { exportProjectsToCSV } from './utils/formatters';
 import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { ProjectSummaryCharts } from './components/ProjectSummaryCharts';
+import { ProjectLocationGridCard } from './components/ProjectLocationGridCard';
 import { FilterBar } from './components/FilterBar';
 import { ProjectTable } from './components/ProjectTable';
 import { TimelineView } from './components/TimelineView';
@@ -32,8 +33,18 @@ import { ForemanModal } from './components/ForemanModal';
 import { WorkPlanList } from './components/WorkPlanList';
 import { WorkPlanModal } from './components/WorkPlanModal';
 import { WorkPlanPrintModal } from './components/WorkPlanPrintModal';
+import { PPTExportModal } from './components/PPTExportModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { Sidebar, ActiveViewType } from './components/Sidebar';
+import {
+  generateProjectsPPT,
+  generateTimelinePPT,
+  generateWorkPlansPPT,
+  generateMaterialRequestsPPT,
+  generateShipmentsPPT,
+  generateForemenPPT,
+  generateMasterMaterialsPPT,
+} from './utils/pptExport';
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -48,7 +59,8 @@ import {
   PackagePlus,
   Database,
   Truck,
-  HardHat
+  HardHat,
+  Presentation
 } from 'lucide-react';
 import { auth, loginWithGoogle, logoutUser } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -394,6 +406,9 @@ export default function App() {
   const [editingWorkPlan, setEditingWorkPlan] = useState<WorkPlan | null>(null);
   const [isWorkPlanPrintModalOpen, setIsWorkPlanPrintModalOpen] = useState(false);
   const [printingWorkPlan, setPrintingWorkPlan] = useState<WorkPlan | null>(null);
+
+  // PPT Export Hub Modal state
+  const [isPPTModalOpen, setIsPPTModalOpen] = useState(false);
 
   // Active View: Table, Timeline, Material Requests, Master Materials, Material Shipments, Foremen, or Work Plans
   const [activeView, setActiveView] = useState<ActiveViewType>('table');
@@ -865,6 +880,70 @@ export default function App() {
     return Math.max(...projects.map((p) => p.no || 0)) + 1;
   }, [projects]);
 
+  // Direct PPT Download Triggers for each menu
+  const handleDownloadProjectsPPT = async () => {
+    try {
+      const fileName = await generateProjectsPPT(projects);
+      showToast(`File PPT Monitoring SPBJ diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Monitoring SPBJ', 'warning');
+    }
+  };
+
+  const handleDownloadTimelinePPT = async () => {
+    try {
+      const fileName = await generateTimelinePPT(projects);
+      showToast(`File PPT Timeline diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Timeline', 'warning');
+    }
+  };
+
+  const handleDownloadWorkPlansPPT = async () => {
+    try {
+      const fileName = await generateWorkPlansPPT(workPlans);
+      showToast(`File PPT Rencana Kerja diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Rencana Kerja', 'warning');
+    }
+  };
+
+  const handleDownloadMaterialRequestsPPT = async () => {
+    try {
+      const fileName = await generateMaterialRequestsPPT(materialRequests);
+      showToast(`File PPT Kebutuhan Material diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Kebutuhan Material', 'warning');
+    }
+  };
+
+  const handleDownloadShipmentsPPT = async () => {
+    try {
+      const fileName = await generateShipmentsPPT(materialShipments);
+      showToast(`File PPT Pengiriman Material diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Pengiriman Material', 'warning');
+    }
+  };
+
+  const handleDownloadForemenPPT = async () => {
+    try {
+      const fileName = await generateForemenPPT(foremen);
+      showToast(`File PPT Data Mandor diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Data Mandor', 'warning');
+    }
+  };
+
+  const handleDownloadMasterMaterialsPPT = async () => {
+    try {
+      const fileName = await generateMasterMaterialsPPT(masterMaterials);
+      showToast(`File PPT Master Data Material diunduh: ${fileName}`, 'success');
+    } catch (e) {
+      showToast('Gagal mengunduh presentasi PPT Master Material', 'warning');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Toast Notification */}
@@ -888,6 +967,7 @@ export default function App() {
         onImportSPBJ={() => setIsImportModalOpen(true)}
         onExportCSV={() => exportProjectsToCSV(filteredProjects)}
         onPrintReport={() => setIsPrintModalOpen(true)}
+        onOpenPPTModal={() => setIsPPTModalOpen(true)}
         currentUser={currentUser}
         onLogin={handleGoogleLogin}
         onLogout={handleLogout}
@@ -915,6 +995,7 @@ export default function App() {
           onImportSPBJ={() => setIsImportModalOpen(true)}
           onExportCSV={() => exportProjectsToCSV(filteredProjects)}
           onPrintReport={() => setIsPrintModalOpen(true)}
+          onOpenPPTModal={() => setIsPPTModalOpen(true)}
           onResetData={handleResetToDefault}
           isOpenMobile={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
@@ -927,7 +1008,21 @@ export default function App() {
 
           {/* Dashboard Visual Charts (Shown on Table View) */}
           {activeView === 'table' && (
-            <ProjectSummaryCharts projects={projects} />
+            <>
+              <ProjectSummaryCharts projects={projects} />
+              <ProjectLocationGridCard
+                projects={projects}
+                foremen={foremen}
+                onOpenProjectDetail={(p) => {
+                  setDetailProject(p);
+                  setIsDetailModalOpen(true);
+                }}
+                onOpenDailyLog={(p) => {
+                  setDailyLogProject(p);
+                  setIsDailyLogModalOpen(true);
+                }}
+              />
+            </>
           )}
 
           {/* View Conditional Render */}
@@ -958,6 +1053,7 @@ export default function App() {
                 onDeleteProject={handleDeleteProject}
                 onCreateMaterialRequest={handleCreateMaterialRequestForProject}
                 onPrintDailyLog={handleOpenDailyLogPrint}
+                onDownloadPPT={handleDownloadProjectsPPT}
               />
             </>
           ) : activeView === 'timeline' ? (
@@ -974,6 +1070,7 @@ export default function App() {
               }}
               onUpdateProject={handleSaveProject}
               onPrintDailyLog={handleOpenDailyLogPrint}
+              onDownloadPPT={handleDownloadTimelinePPT}
             />
           ) : activeView === 'work-plans' ? (
             /* Work Plan View (Rencana Kerja Lapangan) */
@@ -995,6 +1092,7 @@ export default function App() {
                 setPrintingWorkPlan(plan);
                 setIsWorkPlanPrintModalOpen(true);
               }}
+              onDownloadPPT={handleDownloadWorkPlansPPT}
             />
           ) : activeView === 'material-requests' ? (
             /* Material Requests View (MDU & Non-MDU) */
@@ -1015,6 +1113,7 @@ export default function App() {
                 setPrintingMaterialRequest(req);
                 setIsMaterialRequestPrintModalOpen(true);
               }}
+              onDownloadPPT={handleDownloadMaterialRequestsPPT}
             />
           ) : activeView === 'material-shipments' ? (
             /* Material Shipments View (Ekspedisi & Surat Jalan) */
@@ -1034,6 +1133,7 @@ export default function App() {
                 setIsMaterialShipmentPrintModalOpen(true);
               }}
               onStatusChange={handleStatusChangeMaterialShipment}
+              onDownloadPPT={handleDownloadShipmentsPPT}
             />
           ) : activeView === 'foremen' ? (
             /* Foremen View (Daftar Mandor, Multi-Lokasi & PIC) */
@@ -1049,6 +1149,7 @@ export default function App() {
               }}
               onDelete={handleDeleteForeman}
               onStatusChange={handleStatusChangeForeman}
+              onDownloadPPT={handleDownloadForemenPPT}
             />
           ) : (
             /* Master Material View (MDU & Non-MDU) */
@@ -1066,6 +1167,7 @@ export default function App() {
               onDeleteMaterial={handleDeleteMasterMaterial}
               onResetToDefault={handleResetMasterMaterials}
               onOpenMaterialRequests={() => setActiveView('material-requests')}
+              onDownloadPPT={handleDownloadMasterMaterialsPPT}
             />
           )}
         </main>
@@ -1241,7 +1343,21 @@ export default function App() {
         plan={printingWorkPlan}
       />
 
-      {/* 14. Universal Confirmation Modal (Iframe-safe) */}
+      {/* 14. Dedicated PPT Presentation Download Hub Modal */}
+      <PPTExportModal
+        isOpen={isPPTModalOpen}
+        onClose={() => setIsPPTModalOpen(false)}
+        activeView={activeView}
+        projects={projects}
+        materialRequests={materialRequests}
+        materialShipments={materialShipments}
+        foremen={foremen}
+        workPlans={workPlans}
+        masterMaterials={masterMaterials}
+        showToast={showToast}
+      />
+
+      {/* 15. Universal Confirmation Modal (Iframe-safe) */}
       <ConfirmModal
         isOpen={confirmDialog.isOpen}
         onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}

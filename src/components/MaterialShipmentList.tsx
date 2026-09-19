@@ -20,7 +20,8 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
-  Database
+  Database,
+  Presentation
 } from 'lucide-react';
 import { MaterialShipment, MaterialShipmentStatus } from '../types';
 import { formatDateIndo } from '../utils/formatters';
@@ -32,6 +33,7 @@ interface MaterialShipmentListProps {
   onDelete: (id: string) => void;
   onPrint: (shipment: MaterialShipment) => void;
   onStatusChange?: (id: string, newStatus: MaterialShipmentStatus) => void;
+  onDownloadPPT?: () => void;
 }
 
 export const MaterialShipmentList: React.FC<MaterialShipmentListProps> = ({
@@ -41,6 +43,7 @@ export const MaterialShipmentList: React.FC<MaterialShipmentListProps> = ({
   onDelete,
   onPrint,
   onStatusChange,
+  onDownloadPPT,
 }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -253,6 +256,18 @@ export const MaterialShipmentList: React.FC<MaterialShipmentListProps> = ({
               Terkirim ({stats.selesaiTerkirim})
             </button>
           </div>
+
+          {onDownloadPPT && (
+            <button
+              id="btn-download-ppt-shipments"
+              onClick={onDownloadPPT}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs transition-colors cursor-pointer shrink-0"
+              title="Download Presentasi PPT Pengiriman Material (Surat Jalan)"
+            >
+              <Presentation className="w-4 h-4 text-amber-600" />
+              <span>Download PPT</span>
+            </button>
+          )}
 
           <button
             onClick={onCreateNew}

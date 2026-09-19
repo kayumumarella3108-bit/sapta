@@ -47,7 +47,8 @@ import {
   Truck,
   Activity,
   Check,
-  Printer
+  Printer,
+  Presentation
 } from 'lucide-react';
 
 interface TimelineViewProps {
@@ -56,6 +57,7 @@ interface TimelineViewProps {
   onOpenDetail: (project: ProjectItem) => void;
   onUpdateProject?: (project: ProjectItem) => void;
   onPrintDailyLog?: (project: ProjectItem, log: DailyLog) => void;
+  onDownloadPPT?: () => void;
 }
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
@@ -64,6 +66,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   onOpenDetail,
   onUpdateProject,
   onPrintDailyLog,
+  onDownloadPPT,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projects.length > 0 ? projects[0].id : ''
@@ -222,43 +225,57 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             </p>
           </div>
 
-          {/* Mode Switcher Tabs */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl shrink-0 self-start lg:self-auto border border-slate-200">
-            <button
-              onClick={() => setMode('workflow')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                mode === 'workflow'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5 text-amber-500" />
-              <span>Timeline Alur Tanggal</span>
-            </button>
+          {/* Mode Switcher Tabs & Download PPT */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-auto">
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                onClick={() => setMode('workflow')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  mode === 'workflow'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-amber-500" />
+                <span>Timeline Alur Tanggal</span>
+              </button>
 
-            <button
-              onClick={() => setMode('gantt')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                mode === 'gantt'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-blue-500" />
-              <span>Matriks Jadwal Semua SPBJ</span>
-            </button>
+              <button
+                onClick={() => setMode('gantt')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  mode === 'gantt'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                <span>Matriks Jadwal Semua SPBJ</span>
+              </button>
 
-            <button
-              onClick={() => setMode('material-summary')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                mode === 'material-summary'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Rekap Material Terpasang</span>
-            </button>
+              <button
+                onClick={() => setMode('material-summary')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  mode === 'material-summary'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Rekap Material Terpasang</span>
+              </button>
+            </div>
+
+            {onDownloadPPT && (
+              <button
+                id="btn-download-ppt-timeline"
+                onClick={onDownloadPPT}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-colors cursor-pointer shadow-2xs"
+                title="Download Presentasi PPT Timeline & Fase Kerja"
+              >
+                <Presentation className="w-3.5 h-3.5 text-amber-600" />
+                <span>Download PPT Timeline</span>
+              </button>
+            )}
           </div>
         </div>
 
